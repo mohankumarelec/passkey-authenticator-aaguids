@@ -7,11 +7,13 @@ on:
       - combined_aaguid.json
       - aaguid.json
       - scripts/split-aaguids.sh
+      - scripts/convert-to-webp.sh
   pull_request:
     paths:
       - combined_aaguid.json
       - aaguid.json
       - scripts/split-aaguids.sh
+      - scripts/convert-to-webp.sh
   workflow_dispatch:
 
 permissions:
@@ -23,15 +25,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install ImageMagick
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick webp librsvg2-bin
+
       - name: Run split script
         run: bash scripts/split-aaguids.sh
+
+      - name: Convert icons to WebP
+        run: bash scripts/convert-to-webp.sh
 
       - name: Verify dist is in sync
         if: github.event_name == 'pull_request'
         run: |
           git add dist/
           if ! git diff --cached --quiet; then
-            echo "::error::dist/ is out of sync with combined_aaguid.json. Run 'bash scripts/split-aaguids.sh' and commit the result."
+            echo "::error::dist/ is out of sync. Run 'bash scripts/split-aaguids.sh && bash scripts/convert-to-webp.sh' and commit the result."
             git diff --cached --stat
             exit 1
           fi
@@ -52,5 +62,5 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m "bot: Regenerate split AAGUID assets"
+          git commit -m "bot: Regenerate split AAGUID assets as WebP"
           git push
